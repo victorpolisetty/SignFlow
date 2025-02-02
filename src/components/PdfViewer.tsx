@@ -20,7 +20,7 @@ export default function PDFViewer({ file, onHighlight }: PDFViewerProps) {
             console.log("🔹 Highlight detected:", props.selectedText);
             onHighlight(props.selectedText);
             // Return `null` to avoid showing the "Add Note" button
-            return null;
+            return <div />;
         },
     });
 
