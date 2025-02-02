@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // Import useRouter for navigation
 import { Input } from "@/components/ui/input";
 import PDFViewer from "@/components/PdfViewer";
 import axios from "axios";
 
 export default function Home() {
+    const router = useRouter(); // Initialize router for navigation
     const [pdfFile, setPdfFile] = useState<string | null>(null);
     const [highlightedText, setHighlightedText] = useState<string>("");
     const [userQuery, setUserQuery] = useState<string>("");
@@ -47,6 +49,14 @@ export default function Home() {
     return (
         <div className="container mx-auto p-4 bg-white min-h-screen">
             <h1 className="text-2xl font-bold mb-4">PDF Highlighter with AI</h1>
+
+            {/* Navigation Button */}
+            <button
+                onClick={() => router.push("/contract-generator")}
+                className="mb-4 px-4 py-2 bg-green-500 text-white rounded"
+            >
+                Go to Contract Generator
+            </button>
 
             {!pdfFile && (
                 <div className="mb-4">
