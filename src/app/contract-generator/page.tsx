@@ -17,7 +17,7 @@ export default function Page() {
 
         setLoading(true);
         try {
-            const response = await axios.post("http://127.0.0.1:5000/auth/generate_contract", { text: userInput });
+            const response = await axios.post("http://127.0.0.1:5000/contract/generate_contract", { text: userInput });
             setContract(response.data.contract);
         } catch (error) {
             console.error("Error generating contract:", error);
@@ -28,10 +28,10 @@ export default function Page() {
     const handleGeneratePDF = async () => {
         setLoading(true);
         try {
-            const response = await axios.post("http://127.0.0.1:5000/auth/generate_pdf", { contract });
+            const response = await axios.post("http://127.0.0.1:5000/contract/generate_pdf", { contract });
 
             if (response.status === 200 && response.data.pdf_url) {
-                setPdfUrl(`http://127.0.0.1:5000/auth/${response.data.pdf_url}`);
+                setPdfUrl(`http://127.0.0.1:5000/contract/${response.data.pdf_url}`);
             } else {
                 console.error("Unexpected response:", response);
             }
