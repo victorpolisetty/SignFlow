@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import PDFViewer from "@/components/PdfViewer";
 import axios from "axios";
+import { Typography } from "@mui/material";
 
 export default function Home() {
     const [pdfFile, setPdfFile] = useState<string | null>(null);
@@ -14,7 +15,7 @@ export default function Home() {
     const [loading, setLoading] = useState(false);
     const [fullTextAnalysis, setFullTextAnalysis] = useState<string>("");
 
-    const signerSituation = "The signer is being offered an employment contract at DoorDash. This is a new grad offer.";
+    const signerSituation = "The signer is being offered an employment contract from GTAWYB Tech Services Ltd. This is a contracting offer for development work starting at $80/hr.";
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -30,19 +31,25 @@ export default function Home() {
         }
     };
 
+    const cleanHighlightedText = (text) => {
+        return text.replace(/(?<=\w) (?=\w)/g, ""); // Removes spaces between letters but retains spaces between words
+    };
+
+    const handleHighlight = useCallback((text) => {
+        const cleanedText = cleanHighlightedText(text);
+        setHighlightedText(cleanedText);
+    }, []);
+
     const handleExtractText = async () => {
         if (!pdfFile) {
             alert("Please upload a PDF first.");
             return;
         }
-    
+
         setLoading(true);
         try {
             const response = await axios.post("http://127.0.0.1:5000/contract/extract_text", { pdfFile });
-            console.log("Extract Text Response:", response);  // Debugging log
             setFullText(response.data.fullText);
-    
-            // Call handleAnalyzeContract automatically after extracting the text
             handleAnalyzeContract(response.data.fullText);
         } catch (error) {
             console.error("Error extracting text:", error);
@@ -50,20 +57,19 @@ export default function Home() {
         }
         setLoading(false);
     };
-    
+
     const handleAnalyzeContract = async (extractedText) => {
         if (!extractedText) {
             alert("No text available for analysis.");
             return;
         }
-    
+
         setLoading(true);
         try {
             const response = await axios.post("http://127.0.0.1:5000/contract/analyze_contract", {
                 fullText: extractedText,
                 signerSituation,
             });
-            console.log("Analyze Contract Response:", response);  // Debugging log
             setFullTextAnalysis(response.data.analysis);
         } catch (error) {
             console.error("Error analyzing contract:", error);
@@ -71,10 +77,6 @@ export default function Home() {
         }
         setLoading(false);
     };
-
-    const handleHighlight = useCallback((text) => {
-        setHighlightedText(text);
-    }, []);
 
     const handleAskAI = async () => {
         if (!highlightedText.trim()) {
@@ -97,40 +99,53 @@ export default function Home() {
     };
 
     return (
-        <div className="container mx-auto p-4 bg-white min-h-screen">
-            <h1 className="text-2xl font-bold mb-4">AI Contract Analyzer</h1>
+        <div className="container mx-auto p-8 min-h-screen bg-gray-100">
+            <Typography variant="h4" gutterBottom style={{ textAlign: "center", color: "#333" }}>
+                SignFlow AI Contract Viewer
+            </Typography>
             {!pdfFile && (
-                <div className="mb-4">
-                    <Input type="file" accept=".pdf" onChange={handleFileChange} />
+                <div className="mb-6 flex justify-center">
+                    <Input
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleFileChange}
+                        className="block w-full max-w-md p-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    />
                 </div>
             )}
 
             {pdfFile && (
-                <div className="flex mt-4">
+                <div className="flex gap-6">
                     {/* Left Column: PDF Viewer */}
-                    <div className="w-1/2 pr-4">
+                    <div className="w-1/2 bg-white p-6 rounded-lg shadow">
+                        <h2 className="text-lg font-semibold mb-4 text-gray-800">Uploaded PDF</h2>
                         <PDFViewer file={pdfFile} onHighlight={handleHighlight} />
                     </div>
 
                     {/* Middle Column: Highlighted Text & Ask AI */}
-                    <div className="w-1/4 p-4 border-l bg-gray-100 rounded">
-                        <h2 className="text-lg font-semibold mb-2">Highlighted Text</h2>
-                        <p className="text-sm bg-white p-2 rounded">{highlightedText || "Select text in the PDF to highlight it."}</p>
+                    <div className="w-1/4 bg-white p-6 rounded-lg shadow">
+                        <h2 className="text-lg font-semibold mb-4 text-gray-800">Highlighted Text</h2>
+                        <p className="text-sm bg-gray-100 p-4 rounded-lg">
+                            {highlightedText || "Select text in the PDF to highlight it."}
+                        </p>
                         {highlightedText && (
-                            <div className="mt-4">
-                                <h3 className="text-lg font-semibold">Ask AI About This</h3>
+                            <div className="mt-6">
+                                <h3 className="text-md font-semibold mb-2 text-gray-800">Ask AI About This</h3>
                                 <textarea
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                     placeholder="Ask AI something about the text..."
                                     value={userQuery}
                                     onChange={(e) => setUserQuery(e.target.value)}
                                 />
-                                <button onClick={handleAskAI} className="w-full mt-2 p-2 bg-green-500 text-white rounded">
+                                <button
+                                    onClick={handleAskAI}
+                                    className="w-full mt-4 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                                >
                                     {loading ? "Asking AI..." : "Ask AI"}
                                 </button>
                                 {aiResponse && (
-                                    <div className="mt-4 p-4 bg-white border rounded">
-                                        <h3 className="text-lg font-semibold">AI Explanation</h3>
+                                    <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+                                        <h3 className="text-md font-semibold mb-2 text-gray-800">AI Explanation</h3>
                                         <p className="text-sm">{aiResponse}</p>
                                     </div>
                                 )}
@@ -139,15 +154,18 @@ export default function Home() {
                     </div>
 
                     {/* Right Column: Full PDF Analysis */}
-                    <div className="w-1/4 p-4 border-l bg-gray-100 rounded">
-                        <h3 className="text-lg font-semibold">Full PDF Analysis</h3>
-                        <p className="text-sm bg-gray-100 p-2 rounded">{signerSituation}</p>
-                        <button onClick={handleExtractText} className="mt-4 p-2 bg-blue-500 text-white rounded w-full">
+                    <div className="w-1/4 bg-white p-6 rounded-lg shadow">
+                        <h3 className="text-lg font-semibold mb-4 text-gray-800">Full PDF Analysis</h3>
+                        <p className="text-sm bg-gray-100 p-4 rounded-lg mb-4">{signerSituation}</p>
+                        <button
+                            onClick={handleExtractText}
+                            className="w-full p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                        >
                             {loading ? "Extracting Text..." : "Scan Full PDF"}
                         </button>
                         {fullTextAnalysis && (
-                            <div className="mt-4 p-4 bg-white border rounded">
-                                <h3 className="text-lg font-semibold">AI Analysis</h3>
+                            <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+                                <h3 className="text-md font-semibold mb-2 text-gray-800">AI Analysis</h3>
                                 <p>{fullTextAnalysis}</p>
                             </div>
                         )}

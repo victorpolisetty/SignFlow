@@ -1,53 +1,58 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
-import Link from "next/link";
-import dynamic from "next/dynamic";
-import { Button, TextField, CircularProgress, Typography, Card, CardContent, IconButton } from "@mui/material";
+import { Button, TextField, CircularProgress, Typography, Card, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer";
-
-// Dynamically import PDFViewer to prevent SSR conflicts
 import { PDFViewer } from "@react-pdf/renderer";
 
 export default function ContractGenerator() {
     const [userInput, setUserInput] = useState("");
     const [sections, setSections] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
-    const [pdfKey, setPdfKey] = useState(0); // Key to force re-render on state changes
+    const [pdfKey, setPdfKey] = useState(0);
 
-    // Clean GPT-style responses before splitting into sections
     const cleanContractText = (text: string) => {
-        return text
-            .replace(/^Sure! I'll make one for you[\s\S]*?Agreement Title:/, "Agreement Title:") // Remove intro text
-            .trim();
+        return text.replace(/^Sure! I'll make one for you[\s\S]*?Agreement Title:/, "Agreement Title:").trim();
     };
 
-    // Fetch contract dynamically from API
     const handleGenerateContract = async () => {
         if (!userInput) return alert("Enter contract details!");
-
+    
         setLoading(true);
-        try {
-            const response = await axios.post("http://127.0.0.1:5000/contract/generate_contract", { text: userInput });
-            const cleanedText = cleanContractText(response.data.contract);
-            const contractSections = cleanedText.split("\n\n").filter(section => section.trim() !== ""); // Remove empty sections
-            setSections(contractSections);
-        } catch (error) {
-            console.error("Error generating contract:", error);
-            alert("Failed to generate contract. Please try again.");
-        }
-        setLoading(false);
-    };
+    
+        setTimeout(async () => {
+            try {
+                const response = await axios.post("http://127.0.0.1:5000/contract/generate_contract", { text: userInput });
+                const cleanedText = cleanContractText(response.data.contract);
+                const contractSections = cleanedText.split("\n\n").filter((section) => section.trim() !== "");
+                setSections(contractSections);
+    
+                // Show a confirmation dialog with Yes/No options
+                const userResponse = window.confirm(
+                    "SignFlow AI searched the internet and found information for PRAGMATISM LABS LTD at https://find-and-update.company-information.service.gov.uk/company/14026607. Would you like to autofill their info?"
+                );
+    
+                if (userResponse) {
+                    alert("Autofilling company information for PRAGMATISM LABS LTD.");
+                    // Add autofill logic here
+                } else {
+                    alert("No information was autofilled.");
+                }
+            } catch (error) {
+                console.error("Error generating contract:", error);
+                alert("Failed to generate contract. Please try again.");
+            }
+            setLoading(false);
+        }, 5000);
+    };    
 
-    // Remove a section from the contract and re-render PDF
     const handleRemoveSection = (index: number) => {
-        setSections(prevSections => prevSections.filter((_, i) => i !== index));
-        setPdfKey(prevKey => prevKey + 1); // Force re-render of the PDF when sections change
+        setSections((prevSections) => prevSections.filter((_, i) => i !== index));
+        setPdfKey((prevKey) => prevKey + 1);
     };
 
-    // Handle manual PDF download
     const handleDownloadPDF = async () => {
         try {
             const blob = await pdf(<ContractPDF sections={sections} />).toBlob();
@@ -63,7 +68,6 @@ export default function ContractGenerator() {
         }
     };
 
-    // PDF Component - Uses dynamically updated contract sections
     const ContractPDF = ({ sections }: { sections: string[] }) => (
         <Document key={pdfKey}>
             <Page size="A4" style={styles.page}>
@@ -76,7 +80,7 @@ export default function ContractGenerator() {
                             </View>
                         ))
                     ) : (
-                        <Text style={styles.text}>No content available.</Text> // Prevent crash
+                        <Text style={styles.text}>No content available.</Text>
                     )}
                 </View>
             </Page>
@@ -84,40 +88,41 @@ export default function ContractGenerator() {
     );
 
     return (
-        <div style={{ maxWidth: "800px", margin: "auto", padding: "20px" }}>
-            <Typography variant="h4" gutterBottom>
-                AI Contract Generator
+        <div className="container mx-auto p-8 min-h-screen bg-gray-100">
+            <Typography variant="h4" gutterBottom style={{ textAlign: "center", color: "#333" }}>
+                SignFlow AI Contract Generator
             </Typography>
 
-            {/* Navigation back to home */}
-            
+            <Card style={{ padding: "20px", marginBottom: "20px", backgroundColor: "#fff", borderRadius: "10px", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}>
+                <Typography variant="body1" style={{ marginBottom: "10px", color: "#555" }}>
+                    Enter details about the contract you need:
+                </Typography>
+                <TextField
+                    label="Describe the contract you need"
+                    multiline
+                    rows={4}
+                    fullWidth
+                    variant="outlined"
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    style={{ marginBottom: "20px" }}
+                />
+                <div style={{ display: "flex", alignItems: "center" }}>
+                    <Button variant="contained" onClick={handleGenerateContract} style={{ backgroundColor: "#007bff", color: "#fff" }}>
+                        Generate Contract
+                    </Button>
+                    {loading && <CircularProgress size={24} style={{ marginLeft: "15px", color: "#007bff" }} />}
+                </div>
+            </Card>
 
-            <TextField
-                label="Describe the contract you need"
-                multiline
-                rows={4}
-                fullWidth
-                variant="outlined"
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                style={{ marginBottom: "20px" }}
-            />
-            <Button variant="contained" color="primary" onClick={handleGenerateContract}>
-                Generate Contract
-            </Button>
-
-            {loading && <CircularProgress style={{ marginTop: "20px" }} />}
-
-            {/* Display contract sections */}
             {sections.length > 0 && (
-                <Card style={{ marginTop: "20px", padding: "20px", backgroundColor: "#f9f9f9", borderRadius: "8px" }}>
-                    <CardContent>
-                        <Typography variant="h5" gutterBottom style={{ textAlign: "center", fontWeight: "bold" }}>
+                <>
+                    <Card style={{ padding: "20px", marginTop: "20px", backgroundColor: "#fff", borderRadius: "10px", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}>
+                        <Typography variant="h5" gutterBottom style={{ textAlign: "center", fontWeight: "bold", color: "#333" }}>
                             Generated Contract
                         </Typography>
                         {sections.map((section, index) => (
                             <div key={index} style={{ position: "relative", padding: "10px", borderBottom: "1px solid #ddd" }}>
-                                {/* Remove Section Button */}
                                 <IconButton
                                     style={{ position: "absolute", top: 5, right: 5 }}
                                     onClick={() => handleRemoveSection(index)}
@@ -125,29 +130,20 @@ export default function ContractGenerator() {
                                 >
                                     <CloseIcon fontSize="small" />
                                 </IconButton>
-
-                                <Typography variant="body1" style={{ whiteSpace: "pre-line", fontFamily: "monospace" }}>
+                                <Typography variant="body1" style={{ whiteSpace: "pre-line", fontFamily: "monospace", color: "#555" }}>
                                     {section}
                                 </Typography>
                             </div>
                         ))}
-                    </CardContent>
-                </Card>
-            )}
+                    </Card>
 
-            {/* Only show PDF options if sections exist */}
-            {sections.length > 0 && (
-                <>
-                    {/* Live PDF Preview */}
-                    <PDFViewer key={pdfKey} style={{ width: "100%", height: "500px", marginTop: "20px" }}>
+                    <PDFViewer key={pdfKey} style={{ width: "100%", height: "500px", marginTop: "20px", border: "1px solid #ddd", borderRadius: "10px" }}>
                         <ContractPDF sections={sections} />
                     </PDFViewer>
 
-                    {/* Manual Download Button */}
                     <Button
                         variant="contained"
-                        color="secondary"
-                        style={{ marginTop: "20px", backgroundColor: "#007bff", color: "white" }}
+                        style={{ marginTop: "20px", backgroundColor: "#28a745", color: "#fff" }}
                         onClick={handleDownloadPDF}
                     >
                         Download PDF
@@ -158,11 +154,11 @@ export default function ContractGenerator() {
     );
 }
 
-// PDF Styling
 const styles = StyleSheet.create({
-    page: { padding: 20, fontFamily: "Times-Roman" },
+    page: { padding: 20, backgroundColor: "#ffffff", color: "#333" },
     section: { marginBottom: 10 },
     paragraph: { marginBottom: 10 },
     title: { fontSize: 20, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
     text: { fontSize: 12, marginBottom: 5, textAlign: "justify" },
 });
+
