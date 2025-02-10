@@ -19,34 +19,31 @@ export default function ContractGenerator() {
 
     const handleGenerateContract = async () => {
         if (!userInput) return alert("Enter contract details!");
-    
+
         setLoading(true);
-    
+
         setTimeout(async () => {
             try {
                 const response = await axios.post("http://127.0.0.1:5000/contract/generate_contract", { text: userInput });
                 const cleanedText = cleanContractText(response.data.contract);
                 const contractSections = cleanedText.split("\n\n").filter((section) => section.trim() !== "");
                 setSections(contractSections);
-    
-                // Show a confirmation dialog with Yes/No options
-                const userResponse = window.confirm(
-                    "SignFlow AI searched the internet and found information for PRAGMATISM LABS LTD at https://find-and-update.company-information.service.gov.uk/company/14026607. Would you like to autofill their info?"
-                );
-    
-                if (userResponse) {
-                    alert("Autofilling company information for PRAGMATISM LABS LTD.");
-                    // Add autofill logic here
-                } else {
-                    alert("No information was autofilled.");
-                }
             } catch (error) {
                 console.error("Error generating contract:", error);
                 alert("Failed to generate contract. Please try again.");
             }
             setLoading(false);
         }, 5000);
-    };    
+    };
+
+    const handleAutofillTemplate = () => {
+        setTimeout(() => {
+            alert(
+                "SignFlow AI searched the internet and found information for PRAGMATISM LABS LTD at https://find-and-update.company-information.service.gov.uk/company/14026607."
+            );
+        }, 5000); // 2-second delay
+    };
+    
 
     const handleRemoveSection = (index: number) => {
         setSections((prevSections) => prevSections.filter((_, i) => i !== index));
@@ -67,6 +64,15 @@ export default function ContractGenerator() {
             console.error("Error generating PDF:", error);
         }
     };
+
+    // Ensure styles are defined before usage
+    const styles = StyleSheet.create({
+        page: { padding: 20, backgroundColor: "#ffffff", color: "#333" },
+        section: { marginBottom: 10 },
+        paragraph: { marginBottom: 10 },
+        title: { fontSize: 20, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
+        text: { fontSize: 12, marginBottom: 5, textAlign: "justify" },
+    });
 
     const ContractPDF = ({ sections }: { sections: string[] }) => (
         <Document key={pdfKey}>
@@ -141,24 +147,16 @@ export default function ContractGenerator() {
                         <ContractPDF sections={sections} />
                     </PDFViewer>
 
-                    <Button
-                        variant="contained"
-                        style={{ marginTop: "20px", backgroundColor: "#28a745", color: "#fff" }}
-                        onClick={handleDownloadPDF}
-                    >
-                        Download PDF
-                    </Button>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: "20px" }}>
+                        <Button variant="contained" style={{ backgroundColor: "#28a745", color: "#fff" }} onClick={handleAutofillTemplate}>
+                            Autofill Template
+                        </Button>
+                        <Button variant="contained" style={{ backgroundColor: "#007bff", color: "#fff" }} onClick={handleDownloadPDF}>
+                            Download PDF
+                        </Button>
+                    </div>
                 </>
             )}
         </div>
     );
 }
-
-const styles = StyleSheet.create({
-    page: { padding: 20, backgroundColor: "#ffffff", color: "#333" },
-    section: { marginBottom: 10 },
-    paragraph: { marginBottom: 10 },
-    title: { fontSize: 20, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
-    text: { fontSize: 12, marginBottom: 5, textAlign: "justify" },
-});
-

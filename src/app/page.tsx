@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import PDFViewer from "@/components/PdfViewer";
 import axios from "axios";
-import { Typography } from "@mui/material";
+import { Typography, Button, Modal, Box } from "@mui/material";
 
 export default function Home() {
     const [pdfFile, setPdfFile] = useState<string | null>(null);
@@ -14,8 +14,10 @@ export default function Home() {
     const [fullText, setFullText] = useState<string>("");
     const [loading, setLoading] = useState(false);
     const [fullTextAnalysis, setFullTextAnalysis] = useState<string>("");
+    const [modalOpen, setModalOpen] = useState(false);
+    const [aiModalOpen, setAiModalOpen] = useState(false);
 
-    const signerSituation = "The signer is being offered an employment contract from GTAWYB Tech Services Ltd. This is a contracting offer for development work starting at $80/hr.";
+    const signerSituation = "You are being offered an employment contract from GTAWYB Tech Services Ltd. This is a contracting offer for development work starting at $80/hr.";
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -31,12 +33,8 @@ export default function Home() {
         }
     };
 
-    const cleanHighlightedText = (text) => {
-        return text.replace(/(?<=\w) (?=\w)/g, ""); // Removes spaces between letters but retains spaces between words
-    };
-
     const handleHighlight = useCallback((text) => {
-        const cleanedText = cleanHighlightedText(text);
+        const cleanedText = text.replace(/(?<=\w) (?=\w)/g, ""); // Removes spaces between letters but retains spaces between words
         setHighlightedText(cleanedText);
     }, []);
 
@@ -50,7 +48,8 @@ export default function Home() {
         try {
             const response = await axios.post("http://127.0.0.1:5000/contract/extract_text", { pdfFile });
             setFullText(response.data.fullText);
-            handleAnalyzeContract(response.data.fullText);
+            await handleAnalyzeContract(response.data.fullText);
+            setModalOpen(true); // Automatically open the full analysis modal
         } catch (error) {
             console.error("Error extracting text:", error);
             alert("Failed to extract text from the PDF. Please try again.");
@@ -64,7 +63,6 @@ export default function Home() {
             return;
         }
 
-        setLoading(true);
         try {
             const response = await axios.post("http://127.0.0.1:5000/contract/analyze_contract", {
                 fullText: extractedText,
@@ -75,7 +73,6 @@ export default function Home() {
             console.error("Error analyzing contract:", error);
             setFullTextAnalysis("⚠️ Error analyzing the contract. Please try again.");
         }
-        setLoading(false);
     };
 
     const handleAskAI = async () => {
@@ -91,6 +88,7 @@ export default function Home() {
                 question: userQuery || "What does this mean? Keep it super short.",
             });
             setAiResponse(response.data.explanation);
+            setAiModalOpen(true); // Open the AI response modal
         } catch (error) {
             console.error("Error fetching explanation:", error);
             setAiResponse("⚠️ Error fetching AI response. Please try again.");
@@ -143,12 +141,6 @@ export default function Home() {
                                 >
                                     {loading ? "Asking AI..." : "Ask AI"}
                                 </button>
-                                {aiResponse && (
-                                    <div className="mt-4 p-4 bg-gray-100 rounded-lg">
-                                        <h3 className="text-md font-semibold mb-2 text-gray-800">AI Explanation</h3>
-                                        <p className="text-sm">{aiResponse}</p>
-                                    </div>
-                                )}
                             </div>
                         )}
                     </div>
@@ -161,17 +153,77 @@ export default function Home() {
                             onClick={handleExtractText}
                             className="w-full p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
                         >
-                            {loading ? "Extracting Text..." : "Scan Full PDF"}
+                            {loading ? "Extracting Text..." : "Scan PDF for Missing Clauses"}
                         </button>
-                        {fullTextAnalysis && (
-                            <div className="mt-4 p-4 bg-gray-100 rounded-lg">
-                                <h3 className="text-md font-semibold mb-2 text-gray-800">AI Analysis</h3>
-                                <p>{fullTextAnalysis}</p>
-                            </div>
-                        )}
                     </div>
                 </div>
             )}
+
+            {/* Modal for Full PDF Analysis */}
+            <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+                <Box
+                    sx={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        width: "80%",
+                        maxHeight: "80%",
+                        bgcolor: "background.paper",
+                        boxShadow: 24,
+                        p: 4,
+                        overflowY: "auto",
+                        borderRadius: "10px",
+                    }}
+                >
+                    <Typography variant="h5" gutterBottom>
+                        Full PDF Analysis
+                    </Typography>
+                    <Typography variant="body1" style={{ whiteSpace: "pre-line" }}>
+                        {fullTextAnalysis || "No analysis available yet."}
+                    </Typography>
+                    <Button
+                        variant="contained"
+                        style={{ marginTop: "20px", backgroundColor: "#007bff", color: "#fff" }}
+                        onClick={() => setModalOpen(false)}
+                    >
+                        Close
+                    </Button>
+                </Box>
+            </Modal>
+
+            {/* Modal for AI Explanation of Highlighted Text */}
+            <Modal open={aiModalOpen} onClose={() => setAiModalOpen(false)}>
+                <Box
+                    sx={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        width: "80%",
+                        maxHeight: "80%",
+                        bgcolor: "background.paper",
+                        boxShadow: 24,
+                        p: 4,
+                        overflowY: "auto",
+                        borderRadius: "10px",
+                    }}
+                >
+                    <Typography variant="h5" gutterBottom>
+                        AI Explanation
+                    </Typography>
+                    <Typography variant="body1" style={{ whiteSpace: "pre-line" }}>
+                        {aiResponse || "No explanation available yet."}
+                    </Typography>
+                    <Button
+                        variant="contained"
+                        style={{ marginTop: "20px", backgroundColor: "#007bff", color: "#fff" }}
+                        onClick={() => setAiModalOpen(false)}
+                    >
+                        Close
+                    </Button>
+                </Box>
+            </Modal>
         </div>
     );
 }
