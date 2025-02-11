@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Contract Generator",
+  title: "SignFlow",
   description: "Easily generate contracts with AI.",
 };
 

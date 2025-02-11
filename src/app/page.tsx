@@ -34,7 +34,7 @@ export default function Home() {
     };
 
     const handleHighlight = useCallback((text) => {
-        const cleanedText = text.replace(/(?<=\w) (?=\w)/g, ""); // Removes spaces between letters but retains spaces between words
+        const cleanedText = text.replace(/\s+/g, " ").trim(); // Replaces multiple spaces with a single space
         setHighlightedText(cleanedText);
     }, []);
 
@@ -49,7 +49,7 @@ export default function Home() {
             const response = await axios.post("http://127.0.0.1:5000/contract/extract_text", { pdfFile });
             setFullText(response.data.fullText);
             await handleAnalyzeContract(response.data.fullText);
-            setModalOpen(true); // Automatically open the full analysis modal
+            setModalOpen(true);
         } catch (error) {
             console.error("Error extracting text:", error);
             alert("Failed to extract text from the PDF. Please try again.");
@@ -88,7 +88,7 @@ export default function Home() {
                 question: userQuery || "What does this mean? Keep it super short.",
             });
             setAiResponse(response.data.explanation);
-            setAiModalOpen(true); // Open the AI response modal
+            setAiModalOpen(true);
         } catch (error) {
             console.error("Error fetching explanation:", error);
             setAiResponse("⚠️ Error fetching AI response. Please try again.");
@@ -101,7 +101,7 @@ export default function Home() {
             <Typography variant="h4" gutterBottom style={{ textAlign: "center", color: "#333" }}>
                 SignFlow AI Contract Viewer
             </Typography>
-            {!pdfFile && (
+            {!pdfFile ? (
                 <div className="mb-6 flex justify-center">
                     <Input
                         type="file"
@@ -110,14 +110,19 @@ export default function Home() {
                         className="block w-full max-w-md p-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
-            )}
-
-            {pdfFile && (
+            ) : (
                 <div className="flex gap-6">
                     {/* Left Column: PDF Viewer */}
                     <div className="w-1/2 bg-white p-6 rounded-lg shadow">
                         <h2 className="text-lg font-semibold mb-4 text-gray-800">Uploaded PDF</h2>
                         <PDFViewer file={pdfFile} onHighlight={handleHighlight} />
+                        <Button
+                            variant="contained"
+                            style={{ marginTop: "20px", backgroundColor: "#dc3545", color: "#fff" }}
+                            onClick={() => setPdfFile(null)}
+                        >
+                            Choose Different File
+                        </Button>
                     </div>
 
                     {/* Middle Column: Highlighted Text & Ask AI */}
@@ -148,7 +153,6 @@ export default function Home() {
                     {/* Right Column: Full PDF Analysis */}
                     <div className="w-1/4 bg-white p-6 rounded-lg shadow">
                         <h3 className="text-lg font-semibold mb-4 text-gray-800">Full PDF Analysis</h3>
-                        <p className="text-sm bg-gray-100 p-4 rounded-lg mb-4">{signerSituation}</p>
                         <button
                             onClick={handleExtractText}
                             className="w-full p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"

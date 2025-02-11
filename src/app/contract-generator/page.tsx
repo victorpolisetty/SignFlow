@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import axios from "axios";
-import { Button, TextField, CircularProgress, Typography, Card, IconButton } from "@mui/material";
+import { Button, TextField, CircularProgress, Typography, Card, IconButton, Dialog, DialogContent, DialogActions, DialogTitle } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { Document, Page, Text, View, StyleSheet, pdf } from "@react-pdf/renderer";
 import { PDFViewer } from "@react-pdf/renderer";
@@ -11,10 +11,28 @@ export default function ContractGenerator() {
     const [userInput, setUserInput] = useState("");
     const [sections, setSections] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
+    const [autofillLoading, setAutofillLoading] = useState(false);
     const [pdfKey, setPdfKey] = useState(0);
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const [infoDialogOpen, setInfoDialogOpen] = useState(false);
+
+    const placeholderData: Record<string, string> = {
+        "[LLC Name]": "Pragmatism Labs Ltd",
+        "[Company Type]": "Private limited Company",
+        "[Office Address]": "71-75 Shelton Street, Covent Garden, London, United Kingdom, WC2H 9JQ",
+        "[Company Number]": "14026607"
+    };
+
+    const placeholderRegex = /\[(Description of Services|Client Name|Payment Amount|Payment Due Date|LLC Name|Company Type|Office Address|Company Number|Second Party Name|Second Party Address|Describe Services|Total Amount|Payment Schedule|Currency|Start Date|End Date|Notice Period|Governing Law Jurisdiction|Authorized Person's Name|Authorized Person's Title|Signing Date|Authorized Second Party Person's Name|Authorized Second Party Person's Title)\]/g;
 
     const cleanContractText = (text: string) => {
         return text.replace(/^Sure! I'll make one for you[\s\S]*?Agreement Title:/, "Agreement Title:").trim();
+    };
+
+    const highlightFillableParts = (text: string) => {
+        return text.replace(placeholderRegex, (match) => {
+            return `<span style="background-color: yellow; font-weight: bold;">${match}</span>`;
+        });
     };
 
     const handleGenerateContract = async () => {
@@ -28,6 +46,7 @@ export default function ContractGenerator() {
                 const cleanedText = cleanContractText(response.data.contract);
                 const contractSections = cleanedText.split("\n\n").filter((section) => section.trim() !== "");
                 setSections(contractSections);
+                setPdfKey((prevKey) => prevKey + 1); // Force PDF reload
             } catch (error) {
                 console.error("Error generating contract:", error);
                 alert("Failed to generate contract. Please try again.");
@@ -36,14 +55,37 @@ export default function ContractGenerator() {
         }, 5000);
     };
 
-    const handleAutofillTemplate = () => {
-        setTimeout(() => {
-            alert(
-                "SignFlow AI searched the internet and found information for PRAGMATISM LABS LTD at https://find-and-update.company-information.service.gov.uk/company/14026607."
-            );
-        }, 5000); // 2-second delay
+    const handleAutofillTemplate = async () => {
+        if (sections.length === 0) {
+            alert("No contract available to autofill.");
+            return;
+        }
+
+        setInfoDialogOpen(true); // Open the dialog
     };
-    
+
+    const confirmAutofill = async () => {
+        setInfoDialogOpen(false); // Close the dialog
+        setAutofillLoading(true);
+
+        try {
+            const response = await axios.post("http://127.0.0.1:5000/contract/autofill", {
+                contractText: sections.join("\n\n"),
+                autofillData: placeholderData
+            });
+
+            const filledContract = response.data.filledContract;
+            const autofilledSections = filledContract.split("\n\n").filter((section) => section.trim() !== "");
+
+            setSections(autofilledSections);
+            setPdfKey((prevKey) => prevKey + 1); // Ensure the PDF re-renders
+        } catch (error) {
+            console.error("Error autofilling template:", error);
+            alert("Failed to autofill the template. Please try again.");
+        } finally {
+            setAutofillLoading(false);
+        }
+    };
 
     const handleRemoveSection = (index: number) => {
         setSections((prevSections) => prevSections.filter((_, i) => i !== index));
@@ -65,7 +107,10 @@ export default function ContractGenerator() {
         }
     };
 
-    // Ensure styles are defined before usage
+    const handlePreviewPDF = () => {
+        setPreviewOpen(true);
+    };
+
     const styles = StyleSheet.create({
         page: { padding: 20, backgroundColor: "#ffffff", color: "#333" },
         section: { marginBottom: 10 },
@@ -79,15 +124,11 @@ export default function ContractGenerator() {
             <Page size="A4" style={styles.page}>
                 <View style={styles.section}>
                     <Text style={styles.title}>Generated Contract</Text>
-                    {sections.length > 0 ? (
-                        sections.map((section, index) => (
-                            <View key={index} style={styles.paragraph}>
-                                <Text style={styles.text}>{section}</Text>
-                            </View>
-                        ))
-                    ) : (
-                        <Text style={styles.text}>No content available.</Text>
-                    )}
+                    {sections.map((section, index) => (
+                        <View key={index} style={styles.paragraph}>
+                            <Text style={styles.text}>{section}</Text>
+                        </View>
+                    ))}
                 </View>
             </Page>
         </Document>
@@ -136,25 +177,49 @@ export default function ContractGenerator() {
                                 >
                                     <CloseIcon fontSize="small" />
                                 </IconButton>
-                                <Typography variant="body1" style={{ whiteSpace: "pre-line", fontFamily: "monospace", color: "#555" }}>
-                                    {section}
-                                </Typography>
+                                <Typography
+                                    variant="body1"
+                                    style={{ whiteSpace: "pre-line", fontFamily: "monospace", color: "#555" }}
+                                    dangerouslySetInnerHTML={{ __html: highlightFillableParts(section) }}
+                                />
                             </div>
                         ))}
                     </Card>
 
-                    <PDFViewer key={pdfKey} style={{ width: "100%", height: "500px", marginTop: "20px", border: "1px solid #ddd", borderRadius: "10px" }}>
-                        <ContractPDF sections={sections} />
-                    </PDFViewer>
-
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: "20px" }}>
                         <Button variant="contained" style={{ backgroundColor: "#28a745", color: "#fff" }} onClick={handleAutofillTemplate}>
-                            Autofill Template
+                            {autofillLoading ? <CircularProgress size={24} style={{ color: "#fff" }} /> : "Autofill Template"}
                         </Button>
                         <Button variant="contained" style={{ backgroundColor: "#007bff", color: "#fff" }} onClick={handleDownloadPDF}>
                             Download PDF
                         </Button>
+                        <Button variant="contained" style={{ backgroundColor: "#17a2b8", color: "#fff" }} onClick={handlePreviewPDF}>
+                            Preview PDF
+                        </Button>
                     </div>
+
+                    <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} fullWidth maxWidth="lg">
+                        <DialogContent>
+                            <PDFViewer style={{ width: "100%", height: "80vh" }}>
+                                <ContractPDF sections={sections} />
+                            </PDFViewer>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog open={infoDialogOpen} onClose={() => setInfoDialogOpen(false)} fullWidth maxWidth="sm">
+                        <DialogTitle>Using Autofill Data</DialogTitle>
+                        <DialogContent>
+                            Using information found from <a href="https://find-and-update.company-information.service.gov.uk/company/14026607" target="_blank">this link</a> to fill in information for the LLC "Pragmatism Labs Ltd".
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={() => setInfoDialogOpen(false)} color="secondary">
+                                Cancel
+                            </Button>
+                            <Button onClick={confirmAutofill} color="primary">
+                                Confirm Autofill
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
                 </>
             )}
         </div>

@@ -9,7 +9,7 @@ export default function LoginPage() {
     const router = useRouter();
 
     function handleLogin() {
-        if (email === "test@example.com" && password === "password") {
+        if (email === "walker@brighterway.ai" && password === "password") {
             localStorage.setItem("isLoggedIn", "true");
             localStorage.setItem("userType", userType);  // Store user type in local storage
             

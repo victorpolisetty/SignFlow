@@ -2,18 +2,18 @@
 import { useState } from "react";
 
 export default function ProfilePage() {
-    const [companyName, setCompanyName] = useState("Acme Corporation");
-    const [companyLogo, setCompanyLogo] = useState("/default-logo.png");
-    const [address, setAddress] = useState("123 Main Street, San Francisco, CA 94105");
+    const [companyName, setCompanyName] = useState("Brighterway AI");
+    const [companyLogo, setCompanyLogo] = useState("/brighterway-logo.png");
+    const [address, setAddress] = useState("655 Gough St, San Francisco, CA 94102");
     const [businessDescription, setBusinessDescription] = useState(
-        "Acme Corporation is a leading provider of innovative technology solutions in the e-commerce space."
+        "Brighterway AI uses advanced artificial intelligence to speed up the medical record review process for physicians in medlegal exams. Our technology highlights the most relevant information for a doctor's specialty, helping them streamline their review process and save valuable time."
     );
-    const [website, setWebsite] = useState("https://www.acme.com");
-    const [contactEmail, setContactEmail] = useState("contact@acme.com");
+    const [website, setWebsite] = useState("https://www.brighterway.ai");
+    const [contactEmail, setContactEmail] = useState("walker@brighterway.ai");
     const [phone, setPhone] = useState("+1 904-651-3819");
     const [companyMission, setCompanyMission] = useState(
-        "Our mission is to revolutionize e-commerce by providing cutting-edge technology solutions that enhance user experience and drive growth for businesses worldwide."
-    );
+        "Our mission is to empower physicians by simplifying the medical record review process. Brighterway AI structures and deduplicates disorganized medical records, extracting medically relevant content related to a doctor's specialty so they can focus on what matters most."
+    );    
 
     return (
         <div className="container mx-auto p-8 bg-white min-h-screen">
@@ -66,23 +66,13 @@ export default function ProfilePage() {
                 </p>
                 <ul className="list-disc pl-6">
                     <li>
-                        <a href="https://www.linkedin.com/company/acme-corporation" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                        <a href="https://www.linkedin.com/company/brighterwayai" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
                             LinkedIn
                         </a>
                     </li>
                     <li>
-                        <a href="https://www.crunchbase.com/organization/acme-corporation" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
+                        <a href="https://www.crunchbase.com/organization/brighterway-8814" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
                             Crunchbase
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://www.bloomberg.com/profile/company/acme-corporation" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
-                            Bloomberg Profile
-                        </a>
-                    </li>
-                    <li>
-                        <a href="https://www.glassdoor.com/Overview/Working-at-Acme-Corporation" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">
-                            Glassdoor
                         </a>
                     </li>
                 </ul>
